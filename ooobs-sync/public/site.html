@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Синхронизатор заявок</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 860px; margin: 0 auto; padding: 24px 16px; color: #1a1a1a; background: #fafafa; }
+  h1 { margin: 0 0 16px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+  .stat { background: #fff; border: 1px solid #e3e3e3; border-radius: 8px; padding: 12px 16px; min-width: 120px; }
+  .stat b { display: block; font-size: 24px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e3e3e3; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #eee; }
+  th { background: #f3f3f3; }
+  td.n { text-align: right; }
+  h2 { margin-top: 32px; }
+  .wrap { overflow-x: auto; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #111; color: #eee; }
+    .stat, table { background: #1b1b1b; border-color: #333; }
+    th { background: #242424; } td, th { border-color: #2c2c2c; }
+  }
+</style>
+</head>
+<body>
+<h1>Синхронизатор заявок</h1>
+<div class="stats" id="stats">Загрузка…</div>
+<h2>Клиенты</h2>
+<div class="wrap"><table id="clients"></table></div>
+<h2>Отброшенные (невалидный телефон)</h2>
+<div class="wrap"><table id="dropped"></table></div>
+<script>
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const rows = (el, head, items) => {
+  el.innerHTML = '<tr>' + head.map((h) => `<th>${h}</th>`).join('') + '</tr>' +
+    items.map((r) => '<tr>' + r.map((v, i) => `<td${typeof v === 'number' ? ' class="n"' : ''}>${esc(v)}</td>`).join('') + '</tr>').join('');
+};
+const labels = { received: 'Получено', unique: 'Уникальных', duplicates_merged: 'Дублей слито', invalid_dropped: 'Отброшено' };
+
+Promise.all([fetch('/api/clients').then((r) => r.json()), fetch('/api/dropped').then((r) => r.json())])
+  .then(([c, d]) => {
+    if (c.error || d.error) throw new Error(c.error || d.error);
+    document.getElementById('stats').innerHTML = Object.entries(c.stats)
+      .map(([k, v]) => `<div class="stat"><b>${v}</b>${labels[k] || k}</div>`).join('');
+    rows(document.getElementById('clients'), ['Имя', 'Телефон', 'Email', 'Сумма'], c.clients.map((x) => [x.name, x.phone, x.email, x.amount]));
+    rows(document.getElementById('dropped'), ['ID', 'Имя', 'Исходный номер'], d.dropped.map((x) => [x.id, x.name, x.phone]));
+  })
+  .catch((e) => { document.getElementById('stats').textContent = 'Ошибка: ' + e.message; });
+</script>
+</body>
+</html>

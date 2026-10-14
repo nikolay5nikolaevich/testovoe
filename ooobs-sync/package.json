@@ -1,0 +1,1 @@
+{ "name": "ooobs-sync", "private": true, "scripts": { "test": "node test.js" } }

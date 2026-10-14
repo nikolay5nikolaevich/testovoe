@@ -1,1 +1,6 @@
-{ "rewrites": [{ "source": "/", "destination": "/api/clients" }] }
+{
+  "rewrites": [
+    { "source": "/", "has": [{ "type": "header", "key": "accept", "value": ".*text/html.*" }], "destination": "/site.html" },
+    { "source": "/", "destination": "/api/clients" }
+  ]
+}
